@@ -25,7 +25,7 @@ try:
 except:
     st.markdown("<h1 style='color: #d32f2f;'>TOMOCORP</h1>", unsafe_allow_html=True)
 
-st.subheader("Ingeniería de Innovación - Hans Longa")
+st.subheader("Linea de bombas sumergibles")
 
 # --- LÓGICA MATEMÁTICA ---
 def obtener_viscosidad(temp):
@@ -110,4 +110,5 @@ if submit:
             st.write(f"**Factor de fricción (f):** {f:.4f}")
 
 st.markdown("---")
-st.caption("Aplicativo desarrollado por el Ing. Hans Longa")
+
+st.caption("Aplicativo desarrollado por: Ing. Hans Longa")
