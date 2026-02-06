@@ -1,33 +1,30 @@
+Para que Streamlit encuentre la imagen en tu repositorio de GitHub, simplemente debemos usar el nombre exacto del archivo. Al desplegar la aplicación en la nube, el sistema buscará el archivo LOGO PRINCIPAL.png en la raíz de tu proyecto.
+
+He actualizado la variable NOMBRE_IMAGEN y el bloque de carga para que coincida exactamente con tu archivo.
+
+Python
 import streamlit as st
+from PIL import Image
 import math
+import os
 
-# --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Calculadora ADT", page_icon="💧")
+# --- DATOS DE LA NORMA NTP ISO 4427 ---
+DATOS_TUBERIA = {
+    "SDR 33": {315: 9.7, 355: 10.9, 400: 12.3, 450: 13.8, 500: 15.3, 630: 19.3, 800: 24.5, 1000: 30.6},
+    "SDR 26": {50: 2.0, 63: 2.5, 75: 2.9, 90: 3.5, 110: 4.2, 160: 6.2, 200: 7.7, 250: 9.6, 315: 12.1, 400: 15.3, 500: 19.1, 630: 24.1},
+    "SDR 21": {40: 2.0, 50: 2.4, 63: 3.0, 75: 3.6, 90: 4.3, 110: 5.3, 160: 7.7, 200: 9.6, 250: 11.9, 315: 15.0, 400: 19.1, 500: 23.9},
+    "SDR 17": {32: 2.0, 40: 2.4, 50: 3.0, 63: 3.8, 75: 4.5, 90: 5.4, 110: 6.6, 160: 9.5, 200: 11.9, 250: 14.8, 315: 18.7, 400: 23.7, 500: 29.7},
+    "SDR 13.6": {25: 2.0, 32: 2.4, 40: 3.0, 50: 3.7, 63: 4.7, 75: 5.6, 90: 6.7, 110: 8.1, 160: 11.8, 200: 14.7, 250: 18.4, 315: 23.2, 400: 29.4, 500: 36.8},
+    "SDR 11": {20: 2.0, 25: 2.3, 32: 3.0, 40: 3.7, 50: 4.6, 63: 5.8, 75: 6.8, 90: 8.2, 110: 10.0, 160: 14.6, 200: 18.2, 250: 22.7, 315: 28.6, 400: 36.3, 500: 45.4},
+    "SDR 9": {20: 2.3, 25: 3.0, 32: 3.6, 40: 4.5, 50: 5.6, 63: 8.1, 75: 8.4, 90: 10.1, 110: 12.3, 160: 17.9, 200: 22.4, 250: 27.9, 315: 35.2, 400: 44.7, 500: 55.8},
+    "SDR 7.4": {20: 3.0, 25: 3.5, 32: 4.4, 40: 5.5, 50: 6.9, 63: 8.6, 75: 10.3, 90: 12.3, 110: 15.1, 160: 21.9, 200: 27.4, 250: 34.2, 315: 43.1, 400: 54.7, 450: 61.5}
+}
 
-# --- ESTILOS ---
-st.markdown("""
-    <style>
-    .stButton>button {
-        background-color: #d32f2f;
-        color: white;
-        font-weight: bold;
-        border-radius: 10px;
-        width: 100%;
-        height: 3.5em;
-    }
-    .main { background-color: #ffffff; }
-    </style>
-    """, unsafe_allow_html=True)
+DN_PULGADAS = {
+    20: "1/2", 25: "3/4", 32: "1", 40: "1-1/4", 50: "1-1/2", 63: "2.00", 75: "2-1/2", 
+    90: "3", 110: "4", 160: "6", 200: "8", 250: "10", 315: "12", 400: "16", 450: "18", 500: "20"
+}
 
-# --- LOGO ---
-try:
-    st.image("LOGO PRINCIPAL.png", width=220)
-except:
-    st.markdown("<h1 style='color: #d32f2f;'>TOMOCORP</h1>", unsafe_allow_html=True)
-
-st.subheader("Linea de bombas sumergibles")
-
-# --- LÓGICA MATEMÁTICA ---
 def obtener_viscosidad(temp):
     datos_visco = {0: 0.001792, 10: 0.001308, 20: 0.001003, 30: 0.000798, 40: 0.000653, 
                    50: 0.000547, 60: 0.000467, 70: 0.000404, 80: 0.000355, 90: 0.000315, 100: 0.000282}
@@ -39,76 +36,83 @@ def obtener_viscosidad(temp):
 def calcular_friccion_colebrook(re, rugosidad_relativa):
     if re < 2300: return 64 / re
     f = 0.02
-    for _ in range(15): # Aumentado a 15 iteraciones para mayor precisión
+    for _ in range(15):
         f = 1 / (-2 * math.log10((rugosidad_relativa / 3.7) + (2.51 / (re * math.sqrt(f)))))**2
     return f
 
-# --- INTERFAZ ---
-with st.form("calculadora_adt"):
-    st.markdown("### 1. Datos de la Tubería")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        q_val = st.number_input("Caudal", min_value=0.0, value=10.0, step=0.1)
-        u_q = st.selectbox("Unidad Caudal", ["L/s", "m³/h"])
-        d_ext = st.number_input("Diámetro Exterior", min_value=0.1, value=110.0)
-        u_d = st.selectbox("Unidad Diámetro", ["mm", "Pulgadas"])
+# --- INTERFAZ STREAMLIT ---
+st.set_page_config(page_title="Hans Longa - Innovación", layout="centered")
 
-    with col2:
-        espesor = st.number_input("Espesor de Pared", min_value=0.0, value=6.3)
-        u_e = st.selectbox("Unidad Espesor", ["mm", "Pulgadas"])
-        temp = st.slider("Temperatura del Agua (°C)", 0, 100, 20)
-        material = st.radio("Material", ["HDPE", "Acero"], horizontal=True)
+# --- ACTUALIZACIÓN DE LOGO PARA GITHUB ---
+NOMBRE_IMAGEN = "LOGO PRINCIPAL.png"
 
-    st.markdown("### 2. Instalación")
-    longitud = st.number_input("Longitud Total Tubería (m)", min_value=0.1, value=100.0)
-    cota = st.number_input("Altura Geométrica / Cota (m)", value=10.0)
-    valvula = st.checkbox("Incluir Válvula Check (K=2.5)")
+if os.path.exists(NOMBRE_IMAGEN):
+    st.image(NOMBRE_IMAGEN, width=250)
+else:
+    # Si no encuentra la imagen en el repo, muestra el texto alternativo
+    st.title("TOMOCORP")
+    st.info(f"Nota: Asegúrate de que '{NOMBRE_IMAGEN}' esté en la raíz de tu repositorio de GitHub.")
 
-    submit = st.form_submit_button("CALCULAR ADT")
+st.header("Cálculo de Altura Dinámica Total (ADT)")
 
-# --- PROCESAMIENTO ---
-if submit:
-    # Conversiones a Sistema Internacional (m, m3/s)
-    caudal_ms = q_val / 1000 if u_q == "L/s" else q_val / 3600
-    
-    # Normalización de Diámetro y Espesor
-    d_ext_m = d_ext * 0.001 if u_d == "mm" else d_ext * 0.0254
-    e_m = espesor * 0.001 if u_e == "mm" else espesor * 0.0254
-    
-    d_int_m = d_ext_m - (2 * e_m) # Diámetro interno real
+# Entradas de Datos
+col1, col2 = st.columns(2)
+with col1:
+    q_val = st.number_input("Caudal de Diseño", min_value=0.0, value=10.0, step=0.1)
+    combo_q = st.selectbox("Unidades", ["L/s", "m³/h"])
+with col2:
+    temp = st.number_input("Temperatura del Agua (°C)", min_value=0.0, value=20.0)
 
-    if d_int_m <= 0:
-        st.error("❌ Error: El espesor es mayor que el radio de la tubería.")
-    else:
-        # Rugosidad absoluta
-        k = 0.00008 if material == "HDPE" else 0.00015
+st.subheader("Configuración de Tubería")
+mrs = st.selectbox("Resistencia mínima requerida a largo plazo", ["PE-80", "PE-100"])
+sdr = st.selectbox("SDR (Relación de Dimensiones)", list(DATOS_TUBERIA.keys()), index=5)
+
+lista_dn_keys = sorted(DATOS_TUBERIA[sdr].keys())
+lista_dn_labels = [f"{k} mm ({DN_PULGADAS.get(k, '?')}\")" for k in lista_dn_keys]
+dn_seleccionado = st.selectbox("Diámetro Nominal (DN)", lista_dn_labels)
+dn_mm = int(dn_seleccionado.split(" ")[0])
+
+st.subheader("Instalación")
+longitud = st.number_input("Longitud de Tubería (m)", min_value=0.0, value=100.0)
+cota = st.number_input("Elevación / Cota (m)", min_value=0.0, value=10.0)
+
+st.subheader("Accesorios")
+check_valvula = st.checkbox("Válvula Check (K=2.5)")
+check_codo = st.checkbox("Codo 90° (K=2.5)")
+
+if st.button("CALCULAR ADT", use_container_width=True):
+    try:
+        caudal = q_val / 1000 if combo_q == "L/s" else q_val / 3600
+        espesor_mm = DATOS_TUBERIA[sdr].get(dn_mm)
+        diam_int = (dn_mm - 2 * espesor_mm) / 1000
         
-        # Hidráulica
-        area = (math.pi * d_int_m**2) / 4
-        vel = caudal_ms / area
-        visco_dinamica = obtener_viscosidad(temp)
-        # Aproximación de densidad del agua a 1000 kg/m3 para Reynolds
-        re = (vel * d_int_m * 1000) / visco_dinamica
+        rugosidad_abs = 0.000008 
+        visco_cin = obtener_viscosidad(temp) / 1000 
+        area = (math.pi * (diam_int**2)) / 4
+        vel = caudal / area
+        re = (vel * diam_int) / visco_cin
         
-        f = calcular_friccion_colebrook(re, k / d_int_m)
+        f = calcular_friccion_colebrook(re, rugosidad_abs / diam_int)
         g = 9.81
         
-        # Pérdidas
-        hf = f * (longitud / d_int_m) * (vel**2 / (2 * g))
-        hm = 2.5 * (vel**2 / (2 * g)) if valvula else 0
-        adt_final = cota + hf + hm
-
-        # Resultados
-        st.success(f"## ADT: {adt_final:.2f} m.c.a.")
+        per_friccion = f * (longitud / diam_int) * (vel**2 / (2 * g))
+        k_total = (2.5 if check_valvula else 0) + (2.5 if check_codo else 0)
+        per_secundarias = k_total * (vel**2 / (2 * g))
         
-        # Auditoría de datos para el Ingeniero
-        with st.expander("Ver variables de control"):
-            st.write(f"**Diámetro Interno:** {d_int_m*1000:.2f} mm")
-            st.write(f"**Velocidad de flujo:** {vel:.2f} m/s")
-            st.write(f"**N° Reynolds:** {re:.0f}")
-            st.write(f"**Factor de fricción (f):** {f:.4f}")
+        adt = cota + per_friccion + per_secundarias
+        
+        st.success(f"### ADT Total: {adt:.2f} m.c.a.")
+        
+        with st.expander("Ver detalles técnicos del cálculo"):
+            st.write(f"**Espesor:** {espesor_mm} mm")
+            st.write(f"**Diámetro Interno:** {diam_int*1000:.2f} mm")
+            st.write(f"**Velocidad:** {vel:.2f} m/s")
+            st.write(f"**Pérdidas Mayores:** {per_friccion:.3f} m")
+            st.write(f"**Pérdidas Menores:** {per_secundarias:.3f} m")
 
+    except Exception as e:
+        st.error(f"Error: {e}")
+
+# --- PIE DE PÁGINA ---
 st.markdown("---")
-
 st.caption("Aplicativo desarrollado por: Ing. Hans Longa")
